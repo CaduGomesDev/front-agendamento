@@ -2,7 +2,7 @@
 
 Sistema web de agendamento para barbearia, com site público, área do cliente e painel administrativo. Projeto acadêmico (TCC), dividido em dois repositórios: **frontend** e **backend**.
 
-> ⚠️ **PREENCHER antes da entrega:** nomes dos integrantes (seção *Integrantes do grupo*) e as URLs públicas de deploy (seção *URLs públicas do deploy*).
+> ⚠️ **PREENCHER antes da entrega:** as URLs públicas de deploy (seção *URLs públicas do deploy*).
 
 ## Descrição do problema
 
@@ -20,13 +20,9 @@ O sistema é dividido em um **frontend** (React/TanStack Start) e um **backend**
 
 ## Integrantes do grupo
 
-> ⚠️ **PREENCHER** com os nomes reais do grupo.
-
-| Nome | RA / Matrícula (se aplicável) |
-|---|---|
-| _(integrante 1)_ | _(RA)_ |
-| _(integrante 2)_ | _(RA)_ |
-| _(integrante 3)_ | _(RA)_ |
+- Carlos Gomes
+- Wesley Lima
+- Dion Rai
 
 ## Tecnologias utilizadas
 
