@@ -28,7 +28,7 @@ function ForgotPage() {
   return (
     <AuthCard
       title="Recuperar senha"
-      subtitle="Enviaremos um link para redefinir."
+      subtitle="Confirme seu e-mail para redefinir a senha."
       footer={
         <Link to="/app/login" className="text-gold hover:underline">
           Voltar para entrar
@@ -39,6 +39,7 @@ function ForgotPage() {
         <FormField label="E-mail">
           <input
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="input-premium"
@@ -48,7 +49,7 @@ function ForgotPage() {
           disabled={loading}
           className="w-full rounded-md bg-gradient-gold px-6 py-3 text-sm font-semibold uppercase tracking-[0.25em] text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
         >
-          {loading ? "Enviando..." : "Enviar link"}
+          {loading ? "Verificando..." : "Continuar"}
         </button>
       </form>
     </AuthCard>
