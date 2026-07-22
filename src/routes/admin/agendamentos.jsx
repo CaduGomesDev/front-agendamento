@@ -14,7 +14,9 @@ import {
 import { getClients } from "@/services/clients";
 import { getActiveBarbers } from "@/services/barbers";
 import { getActiveServices } from "@/services/services";
+import { getSettings } from "@/services/settings";
 import { TIME_SLOTS, formatDateBR } from "@/lib/barbershop";
+import { DatePicker } from "@/components/DatePicker";
 import { APPOINTMENT_STATUSES } from "@/types";
 
 export const Route = createFileRoute("/admin/agendamentos")({
@@ -34,10 +36,13 @@ function AgendamentosPage() {
   const [clients, setClients] = useState([]);
   const [barbers, setBarbers] = useState([]);
   const [services, setServices] = useState([]);
+  const [settings, setSettings] = useState(null);
   const emptyForm = { clientId: "", barberId: "", serviceId: "", date: today, time: "" };
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [savingAppt, setSavingAppt] = useState(false);
+
+  const workingDays = settings?.workingDays ?? null;
 
   const load = async () => {
     setLoading(true);
@@ -60,6 +65,9 @@ function AgendamentosPage() {
       .catch(() => {});
     getActiveServices()
       .then(setServices)
+      .catch(() => {});
+    getSettings()
+      .then(setSettings)
       .catch(() => {});
   }, []);
 
@@ -228,11 +236,10 @@ function AgendamentosPage() {
                 <span className="mb-1 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
                   Data
                 </span>
-                <input
-                  type="date"
+                <DatePicker
                   value={form.date}
-                  onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="input-premium"
+                  onChange={(d) => setForm({ ...form, date: d })}
+                  workingDays={workingDays}
                 />
               </label>
               <label className="block">
@@ -351,13 +358,9 @@ function AgendamentosPage() {
             <Lock className="h-4 w-4 text-gold" /> Bloquear horário
           </h3>
           <div className="mt-4 flex flex-wrap gap-3">
-            <input
-              type="date"
-              min={today}
-              value={blockDate}
-              onChange={(e) => setBlockDate(e.target.value)}
-              className="input-premium w-full sm:max-w-[180px]"
-            />
+            <div className="w-full sm:max-w-[180px]">
+              <DatePicker value={blockDate} onChange={setBlockDate} workingDays={workingDays} />
+            </div>
             <select
               value={blockTime}
               onChange={(e) => setBlockTime(e.target.value)}

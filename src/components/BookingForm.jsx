@@ -1,26 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
-import { Scissors, Calendar as CalendarIcon } from "lucide-react";
-import { ptBR } from "date-fns/locale";
+import { Scissors } from "lucide-react";
 import { buildWhatsAppUrl, formatDateBR } from "@/lib/barbershop";
 import { useAuth } from "@/contexts/AuthContext";
 import { getActiveBarbers } from "@/services/barbers";
 import { getActiveServices } from "@/services/services";
 import { getSettings } from "@/services/settings";
 import { createAppointment } from "@/services/appointments";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-
-const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
-
-/** Date -> "YYYY-MM-DD" no fuso local (evita deslocamento de um dia). */
-function toISODate(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+import { DatePicker } from "@/components/DatePicker";
 
 export function BookingForm() {
   const { user } = useAuth();
@@ -32,7 +20,6 @@ export function BookingForm() {
   const [data, setData] = useState("");
   const [busy, setBusy] = useState(false);
   const [settings, setSettings] = useState(null);
-  const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
     getActiveBarbers().then((list) => {
@@ -47,26 +34,6 @@ export function BookingForm() {
 
   const workingDays = settings?.workingDays ?? null;
   const bookingDisabled = settings ? settings.allowOnlineBooking === false : false;
-
-  // Início de hoje — usado para bloquear datas passadas no calendário.
-  const startOfToday = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
-
-  // Dias desabilitados no calendário: datas passadas + dias da semana
-  // que não estão nos dias de funcionamento configurados.
-  const disabledMatchers = useMemo(() => {
-    const matchers = [{ before: startOfToday }];
-    if (workingDays) {
-      const closedDows = ALL_DAYS.filter((d) => !workingDays.includes(d));
-      if (closedDows.length) matchers.push({ dayOfWeek: closedDows });
-    }
-    return matchers;
-  }, [workingDays, startOfToday]);
-
-  const selectedDate = data ? new Date(data + "T00:00:00") : undefined;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -163,35 +130,7 @@ export function BookingForm() {
           <span className="mb-2 block text-xs uppercase tracking-[0.25em] text-muted-foreground">
             Data
           </span>
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="input-premium flex w-full items-center justify-between text-left"
-              >
-                <span className={data ? "" : "text-muted-foreground"}>
-                  {data ? formatDateBR(data) : "Selecione a data"}
-                </span>
-                <CalendarIcon className="h-4 w-4 text-gold" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                locale={ptBR}
-                selected={selectedDate}
-                onSelect={(d) => {
-                  if (d) {
-                    setData(toISODate(d));
-                    setCalendarOpen(false);
-                  }
-                }}
-                disabled={disabledMatchers}
-                startMonth={startOfToday}
-                defaultMonth={selectedDate ?? startOfToday}
-              />
-            </PopoverContent>
-          </Popover>
+          <DatePicker value={data} onChange={setData} workingDays={workingDays} />
           <p className="mt-2 text-xs text-muted-foreground">
             Dias sem atendimento aparecem bloqueados no calendário.
           </p>
