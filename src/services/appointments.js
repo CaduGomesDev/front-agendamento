@@ -13,6 +13,8 @@ export async function getAppointmentsByUser(_userId) {
 
 export async function createAppointment(input) {
   return api.post("/appointments", {
+    // userId só é usado pelo back-end quando quem cria é admin (agendar p/ cliente).
+    userId: input.userId,
     barberId: input.barberId,
     serviceId: input.serviceId,
     date: input.date,
@@ -23,6 +25,11 @@ export async function createAppointment(input) {
 
 export async function updateAppointmentStatus(id, status) {
   return api.patch(`/appointments/${id}/status`, { status });
+}
+
+/** Exclusão definitiva de um agendamento (admin). */
+export async function deleteAppointment(id) {
+  await api.delete(`/appointments/${id}`);
 }
 
 export async function cancelAppointment(id) {

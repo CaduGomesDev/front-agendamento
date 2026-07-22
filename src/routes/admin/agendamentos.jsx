@@ -1,14 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Lock, Trash2, ShieldOff } from "lucide-react";
+import { Lock, Trash2, ShieldOff, Plus, X, CalendarPlus } from "lucide-react";
 import {
   getAppointments,
   updateAppointmentStatus,
+  createAppointment,
+  deleteAppointment,
   getBlockedSlots,
   blockSlot,
   removeBlockedSlot,
 } from "@/services/appointments";
+import { getClients } from "@/services/clients";
+import { getActiveBarbers } from "@/services/barbers";
+import { getActiveServices } from "@/services/services";
 import { TIME_SLOTS, formatDateBR } from "@/lib/barbershop";
 import { APPOINTMENT_STATUSES } from "@/types";
 
@@ -25,6 +30,15 @@ function AgendamentosPage() {
   const [blockDate, setBlockDate] = useState(today);
   const [blockTime, setBlockTime] = useState("");
 
+  // Dados de apoio para marcar cliente na agenda.
+  const [clients, setClients] = useState([]);
+  const [barbers, setBarbers] = useState([]);
+  const [services, setServices] = useState([]);
+  const emptyForm = { clientId: "", barberId: "", serviceId: "", date: today, time: "" };
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [savingAppt, setSavingAppt] = useState(false);
+
   const load = async () => {
     setLoading(true);
     const [a, b] = await Promise.all([getAppointments(), getBlockedSlots()]);
@@ -34,6 +48,19 @@ function AgendamentosPage() {
   };
   useEffect(() => {
     load();
+  }, []);
+
+  // Listas de apoio (carregadas uma vez).
+  useEffect(() => {
+    getClients()
+      .then(setClients)
+      .catch(() => {});
+    getActiveBarbers()
+      .then(setBarbers)
+      .catch(() => {});
+    getActiveServices()
+      .then(setServices)
+      .catch(() => {});
   }, []);
 
   const filtered = useMemo(() => {
@@ -53,6 +80,47 @@ function AgendamentosPage() {
     await updateAppointmentStatus(id, status);
     toast.success("Status atualizado.");
     load();
+  };
+
+  const createAppt = async () => {
+    if (!form.clientId) return toast.error("Selecione o cliente.");
+    if (!form.barberId) return toast.error("Selecione o barbeiro.");
+    if (!form.serviceId) return toast.error("Selecione o serviço.");
+    if (!form.date) return toast.error("Selecione a data.");
+    setSavingAppt(true);
+    try {
+      await createAppointment({
+        userId: form.clientId,
+        barberId: form.barberId,
+        serviceId: form.serviceId,
+        date: form.date,
+        time: form.time || undefined,
+      });
+      toast.success("Agendamento criado.");
+      setForm({ ...emptyForm, date: today });
+      setShowForm(false);
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível agendar.");
+    } finally {
+      setSavingAppt(false);
+    }
+  };
+
+  const removeAppt = async (a) => {
+    if (
+      !window.confirm(
+        `Excluir o agendamento de "${a.clientName}" em ${formatDateBR(a.date)}? Esta ação não pode ser desfeita.`,
+      )
+    )
+      return;
+    try {
+      await deleteAppointment(a.id);
+      toast.success("Agendamento excluído.");
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível excluir.");
+    }
   };
 
   const addBlock = async () => {
@@ -81,8 +149,132 @@ function AgendamentosPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h2 className="font-serif text-xl">Agendamentos</h2>
-        <div className="mt-4 mb-4 flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-serif text-xl">Agendamentos</h2>
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="flex items-center justify-center gap-2 whitespace-nowrap rounded-md bg-gradient-gold px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-foreground transition hover:brightness-110"
+          >
+            {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {showForm ? "Fechar" : "Novo agendamento"}
+          </button>
+        </div>
+
+        {showForm && (
+          <div className="mt-5 rounded-xl border border-border bg-card/40 p-5">
+            <h3 className="mb-4 flex items-center gap-2 font-serif text-lg">
+              <CalendarPlus className="h-4 w-4 text-gold" /> Marcar cliente na agenda
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Cliente
+                </span>
+                <select
+                  value={form.clientId}
+                  onChange={(e) => setForm({ ...form, clientId: e.target.value })}
+                  className="input-premium"
+                >
+                  <option value="">
+                    {clients.length === 0 ? "Carregando..." : "Selecione..."}
+                  </option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                      {c.phone ? ` — ${c.phone}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Barbeiro
+                </span>
+                <select
+                  value={form.barberId}
+                  onChange={(e) => setForm({ ...form, barberId: e.target.value })}
+                  className="input-premium"
+                >
+                  <option value="">
+                    {barbers.length === 0 ? "Carregando..." : "Selecione..."}
+                  </option>
+                  {barbers.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Serviço
+                </span>
+                <select
+                  value={form.serviceId}
+                  onChange={(e) => setForm({ ...form, serviceId: e.target.value })}
+                  className="input-premium"
+                >
+                  <option value="">
+                    {services.length === 0 ? "Carregando..." : "Selecione..."}
+                  </option>
+                  {services.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} — R$ {s.price}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Data
+                </span>
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  className="input-premium"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Horário (opcional)
+                </span>
+                <select
+                  value={form.time}
+                  onChange={(e) => setForm({ ...form, time: e.target.value })}
+                  className="input-premium"
+                >
+                  <option value="">A combinar</option>
+                  {TIME_SLOTS.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={createAppt}
+                disabled={savingAppt}
+                className="rounded-md bg-gradient-gold px-6 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-foreground disabled:opacity-60"
+              >
+                {savingAppt ? "Salvando..." : "Agendar"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowForm(false);
+                  setForm({ ...emptyForm, date: today });
+                }}
+                className="rounded-md border border-border px-6 py-2.5 text-xs uppercase tracking-[0.2em] text-muted-foreground"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="mb-4 mt-6 flex flex-wrap gap-2">
           {FILTERS.map((f) => (
             <button
               key={f.key}
@@ -100,7 +292,7 @@ function AgendamentosPage() {
           <p className="text-sm text-muted-foreground">Nenhum agendamento.</p>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-border bg-card/40">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[820px] text-sm">
               <thead className="bg-card/60 text-left text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">Cliente</th>
@@ -109,6 +301,7 @@ function AgendamentosPage() {
                   <th className="px-4 py-3">Data</th>
                   <th className="px-4 py-3">Hora</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -134,6 +327,15 @@ function AgendamentosPage() {
                           </option>
                         ))}
                       </select>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => removeAppt(a)}
+                        title="Excluir agendamento"
+                        className="inline-flex rounded-md border border-border p-2 text-muted-foreground transition hover:border-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
