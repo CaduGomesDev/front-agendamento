@@ -113,13 +113,19 @@ function ConfiguracoesPage() {
               <input
                 type="number"
                 min={0}
+                step={1}
                 value={settings.bookingIntervalMinutes}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const n = Math.floor(Number(e.target.value));
                   setSettings({
                     ...settings,
-                    bookingIntervalMinutes: Math.max(0, Number(e.target.value)),
-                  })
-                }
+                    bookingIntervalMinutes: Number.isFinite(n) ? Math.max(0, n) : 0,
+                  });
+                }}
+                onKeyDown={(e) => {
+                  // Bloqueia o sinal de menos / expoente já na digitação.
+                  if (["-", "e", "E", "+"].includes(e.key)) e.preventDefault();
+                }}
                 className="input-premium w-full"
               />
             </label>

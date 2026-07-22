@@ -2,11 +2,17 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { Scissors } from "lucide-react";
-import { TIME_SLOTS, isSundayClosed, buildWhatsAppUrl, formatDateBR } from "@/lib/barbershop";
+import { TIME_SLOTS, buildWhatsAppUrl, formatDateBR } from "@/lib/barbershop";
 import { useAuth } from "@/contexts/AuthContext";
 import { getActiveBarbers } from "@/services/barbers";
 import { getActiveServices } from "@/services/services";
+import { getSettings } from "@/services/settings";
 import { createAppointment, getTakenSlots, getBlockedSlots } from "@/services/appointments";
+
+/** Dia da semana (0=Dom ... 6=Sáb) da data selecionada. */
+function weekdayOf(dateStr) {
+  return new Date(dateStr + "T00:00:00").getDay();
+}
 
 export function BookingForm() {
   const { user } = useAuth();
@@ -20,6 +26,7 @@ export function BookingForm() {
   const [busy, setBusy] = useState(false);
   const [taken, setTaken] = useState([]);
   const [blocked, setBlocked] = useState([]);
+  const [settings, setSettings] = useState(null);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -29,6 +36,9 @@ export function BookingForm() {
       if (list.length) setBarberId((prev) => prev || list[0].id);
     });
     getActiveServices().then(setServices);
+    getSettings()
+      .then(setSettings)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -57,8 +67,9 @@ export function BookingForm() {
     if (!barberId) return toast.error("Selecione um barbeiro.");
     if (!servico) return toast.error("Selecione um serviço.");
     if (!data) return toast.error("Selecione a data.");
+    if (bookingDisabled) return toast.error("Agendamento online indisponível no momento.");
+    if (closed) return toast.error("A barbearia não funciona neste dia. Escolha outro.");
     if (!horario) return toast.error("Selecione o horário.");
-    if (isSundayClosed(data)) return toast.error("Domingo a barbearia está fechada.");
 
     const svc = services.find((s) => s.id === servico);
     setBusy(true);
@@ -90,7 +101,13 @@ export function BookingForm() {
     }
   };
 
-  const sundayClosed = isSundayClosed(data);
+  // Enquanto as configurações não carregam, mantém a grade padrão como fallback.
+  const slots = settings?.timeSlots?.length ? settings.timeSlots : TIME_SLOTS;
+  const workingDays = settings?.workingDays ?? null;
+  const bookingDisabled = settings ? settings.allowOnlineBooking === false : false;
+  // Dia fechado: só bloqueia quando há data e as configurações já indicam que o
+  // dia não está entre os dias de funcionamento.
+  const closed = Boolean(data && workingDays && !workingDays.includes(weekdayOf(data)));
 
   return (
     <form
@@ -100,6 +117,12 @@ export function BookingForm() {
       {!user && (
         <p className="mb-6 rounded-md border border-gold/40 bg-gold/5 px-4 py-3 text-sm text-gold">
           Você precisa estar logado para agendar.
+        </p>
+      )}
+
+      {bookingDisabled && (
+        <p className="mb-6 rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          O agendamento online está temporariamente indisponível.
         </p>
       )}
 
@@ -160,13 +183,15 @@ export function BookingForm() {
 
       <div className="mt-8">
         <p className="mb-3 text-xs uppercase tracking-[0.25em] text-muted-foreground">Horário</p>
-        {sundayClosed ? (
-          <p className="text-sm text-destructive">Domingo a barbearia está fechada.</p>
+        {closed ? (
+          <p className="text-sm text-destructive">
+            A barbearia não funciona neste dia. Escolha outro.
+          </p>
         ) : (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-            {TIME_SLOTS.map((t) => {
+            {slots.map((t) => {
               const isTaken = taken.includes(t) || blocked.includes(t);
-              const disabled = isTaken || !data;
+              const disabled = isTaken || !data || bookingDisabled;
               const active = horario === t;
               return (
                 <button
@@ -198,7 +223,7 @@ export function BookingForm() {
 
       <button
         type="submit"
-        disabled={busy}
+        disabled={busy || closed || bookingDisabled}
         className="group mt-8 flex w-full items-center justify-center gap-2 rounded-md bg-gradient-gold px-6 py-4 text-sm font-semibold uppercase tracking-[0.25em] text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
       >
         <Scissors className="h-4 w-4 transition group-hover:rotate-12" />
