@@ -3,15 +3,17 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AuthCard, FormField } from "@/components/AuthCard";
 import { useAuth } from "@/contexts/AuthContext";
-import { updatePassword } from "@/services/auth";
+import { confirmPasswordReset, updatePassword } from "@/services/auth";
 
 export const Route = createFileRoute("/app/redefinir-senha")({
   component: ResetPage,
+  validateSearch: (search) => ({ token: typeof search.token === "string" ? search.token : "" }),
   head: () => ({ meta: [{ title: "Nova senha — Barbearia Espezim" }] }),
 });
 
 function ResetPage() {
   const navigate = useNavigate();
+  const { token } = Route.useSearch();
   const { user } = useAuth();
   const [pass, setPass] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,16 +22,16 @@ function ResetPage() {
     e.preventDefault();
     if (pass.length < 6) return toast.error("Mínimo de 6 caracteres.");
     setLoading(true);
-    // Fluxo real usa o token do e-mail; no mock, atualiza se houver usuário logado.
-    if (user) {
-      const { error } = await updatePassword(user.id, pass);
-      if (error) {
-        setLoading(false);
-        return toast.error(error);
-      }
-    }
+    // Com token (veio do "recuperar senha") → redefine sem estar logado.
+    // Sem token, mas logado (troca pelo perfil) → usa a rota autenticada.
+    const { error } = token
+      ? await confirmPasswordReset({ token, password: pass })
+      : user
+        ? await updatePassword(user.id, pass)
+        : { error: "Link inválido. Solicite a redefinição novamente." };
     setLoading(false);
-    toast.success("Senha atualizada!");
+    if (error) return toast.error(error);
+    toast.success("Senha atualizada! Faça login com a nova senha.");
     navigate({ to: "/app/login" });
   };
 

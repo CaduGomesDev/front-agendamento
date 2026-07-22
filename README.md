@@ -139,6 +139,7 @@ Outros comandos: `npm run build` (build de produção), `npm run preview` (pré-
 - Agendamento online (serviço, barbeiro, data e horário disponível).
 - "Meus agendamentos": histórico e cancelamento.
 - Edição de perfil e troca de senha (quando logado).
+- Recuperação de senha ("esqueci minha senha") com token de uso único.
 
 **Painel administrativo** (requer papel `admin`)
 - Dashboard com estatísticas e agendamentos do dia.
@@ -151,7 +152,7 @@ Outros comandos: `npm run build` (build de produção), `npm run preview` (pré-
 **Transversais**
 - Autenticação JWT (access + refresh) com renovação automática do token.
 
-> **Observações (limitações conhecidas):** o login social com Google e a recuperação de senha por e-mail têm as telas no front, mas ainda **não estão implementados de ponta a ponta** — o back-end não faz envio de e-mail, e o Google exige configurar `GOOGLE_CLIENT_ID` (servidor) e o SDK no front. A troca de senha do usuário logado (pelo perfil) funciona normalmente.
+> **Observações (limitações conhecidas):** o login social com Google tem a tela no front, mas ainda **não está implementado de ponta a ponta** (exige configurar `GOOGLE_CLIENT_ID` no servidor e o SDK do Google no front). A **recuperação de senha** ("esqueci minha senha") e a troca de senha do usuário logado **funcionam** — como o projeto não usa servidor de e-mail, o token de redefinição é gerado pelo próprio sistema, que leva o usuário direto à tela de nova senha (em produção, esse token seria enviado por e-mail).
 
 ## Rotas da API
 
@@ -165,6 +166,8 @@ Acesso: 🌐 público · 🔑 autenticado · 👑 admin.
 | POST | `/api/auth/login` | 🌐 | Login (e-mail/senha) → tokens JWT. |
 | POST | `/api/auth/google` | 🌐 | Login social com Google. |
 | POST | `/api/auth/refresh` | 🌐 | Renova o access token. |
+| POST | `/api/auth/forgot-password` | 🌐 | Solicita redefinição de senha (gera token de uso único, válido por 30 min). |
+| POST | `/api/auth/reset-password` | 🌐 | Redefine a senha usando o token. |
 | POST | `/api/auth/logout` | 🌐 | Logout. |
 | GET | `/api/auth/me` | 🔑 | Dados do usuário logado. |
 | GET / PATCH | `/api/users/me` | 🔑 | Ver / atualizar o próprio perfil. |

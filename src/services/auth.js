@@ -89,9 +89,30 @@ export async function logout() {
   }
 }
 
-export async function resetPassword(email) {
-  // Recuperação por e-mail depende de servidor de e-mail (não implementado no back-end).
-  return { error: email.trim() ? null : "Informe um e-mail válido." };
+/**
+ * Passo 1: solicita a redefinição. O back-end gera um token de uso único e o
+ * devolve (sem servidor de e-mail), para o front seguir direto à tela de nova senha.
+ */
+export async function requestPasswordReset(email) {
+  try {
+    const data = await api.post("/auth/forgot-password", { email: email.trim() });
+    return { token: data?.token ?? null, error: null };
+  } catch (e) {
+    return {
+      token: null,
+      error: e instanceof ApiError ? e.message : "Não foi possível gerar o link de redefinição.",
+    };
+  }
+}
+
+/** Passo 2: envia o token + a nova senha para concluir a redefinição. */
+export async function confirmPasswordReset({ token, password }) {
+  try {
+    await api.post("/auth/reset-password", { token, password });
+    return { error: null };
+  } catch (e) {
+    return { error: e instanceof ApiError ? e.message : "Não foi possível redefinir a senha." };
+  }
 }
 
 export async function updatePassword(_userId, newPassword) {

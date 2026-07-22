@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AuthCard, FormField } from "@/components/AuthCard";
-import { resetPassword } from "@/services/auth";
+import { requestPasswordReset } from "@/services/auth";
 
 export const Route = createFileRoute("/app/recuperar-senha")({
   component: ForgotPage,
@@ -10,6 +10,7 @@ export const Route = createFileRoute("/app/recuperar-senha")({
 });
 
 function ForgotPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -17,10 +18,11 @@ function ForgotPage() {
     e.preventDefault();
     if (!email) return;
     setLoading(true);
-    const { error } = await resetPassword(email);
+    const { token, error } = await requestPasswordReset(email);
     setLoading(false);
     if (error) return toast.error(error);
-    toast.success("Enviamos um link para o seu e-mail.");
+    toast.success("Conta encontrada! Defina a sua nova senha.");
+    navigate({ to: "/app/redefinir-senha", search: { token } });
   };
 
   return (
