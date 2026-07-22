@@ -37,8 +37,8 @@ export function AuthProvider({ children }) {
     return result;
   };
 
-  const loginWithGoogle = async () => {
-    const result = await svcLoginWithGoogle();
+  const loginWithGoogle = async (idToken) => {
+    const result = await svcLoginWithGoogle(idToken);
     if (result.session) setUser(result.session.user);
     return result;
   };

@@ -56,9 +56,17 @@ export async function loginWithEmail({ email, password }) {
   }
 }
 
-export async function loginWithGoogle() {
-  // Requer o Google Identity SDK no front (idToken) — a implementar.
-  return { session: null, error: "Login com Google ainda não está disponível." };
+export async function loginWithGoogle(idToken) {
+  try {
+    const data = await api.post("/auth/google", { idToken });
+    tokenStore.set(data.accessToken, data.refreshToken);
+    return { session: writeSession(fromApiUser(data.user), data.accessToken), error: null };
+  } catch (e) {
+    return {
+      session: null,
+      error: e instanceof ApiError ? e.message : "Não foi possível entrar com o Google.",
+    };
+  }
 }
 
 export async function signUp(data) {
