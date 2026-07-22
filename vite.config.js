@@ -1,15 +1,20 @@
-// @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
-// or the app will break with duplicate plugins:
-//   - tanstackStart, viteReact, tailwindcss, tsConfigPaths, cloudflare (build-only),
-//     componentTagger (dev-only), VITE_* env injection, @ path alias, React/TanStack dedupe,
-//     error logger plugins, and sandbox detection (port/host/strictPort).
-// You can pass additional config via defineConfig({ vite: { ... } }) if needed.
-import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { nitro } from "nitro/vite";
+import viteReact from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
-// Redirect TanStack Start's bundled server entry to src/server.js (our SSR error wrapper).
-// @cloudflare/vite-plugin builds from this — wrangler.jsonc main alone is insufficient.
+// Alvo de deploy: VERCEL.
+// O TanStack Start compila o servidor via Nitro (plugin `nitro/vite`). No build
+// da Vercel, o Nitro detecta o ambiente automaticamente e gera Vercel Functions
+// — não é preciso configurar preset, build command nem output (ver vercel.json).
 export default defineConfig({
-  tanstackStart: {
-    server: { entry: "server" },
+  plugins: [tanstackStart(), nitro(), viteReact(), tailwindcss()],
+  resolve: {
+    // Alias "@/..." -> "src/..." (usado em todo o projeto).
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
   },
 });
