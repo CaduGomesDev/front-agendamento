@@ -16,6 +16,11 @@ dist-ssr
 .nitro
 *.local
 
+# Env local (nao commitar segredos) — mantém apenas o .env.example
+.env
+.env.*
+!.env.example
+
 # Vercel
 .vercel
 
