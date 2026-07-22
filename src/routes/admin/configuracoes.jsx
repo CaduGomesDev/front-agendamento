@@ -46,8 +46,10 @@ function ConfiguracoesPage() {
 
   const saveSettings = async () => {
     if (!settings) return;
+    // Aceita vírgula, ponto, ponto e vírgula ou quebra de linha como separador,
+    // evitando que itens como "Qua. Qui" fiquem grudados em um único horário.
     const timeSlots = slotsText
-      .split(",")
+      .split(/[,.;\n]+/)
       .map((t) => t.trim())
       .filter(Boolean);
     setSavingS(true);
