@@ -11,9 +11,9 @@ O front consome **apenas a API REST** do back-end (Node/Express).
 - **TanStack Start** + **TanStack Router** — roteamento baseado em arquivos (`src/routes`), com SSR.
 - **React 19** + **JavaScript (ESM)**
 - **Tailwind CSS v4** (tema em `src/styles.css`, tokens em OKLCH) + **shadcn/ui** (`src/components/ui`) + **Radix UI**
-- **Vite 7** como bundler, com `@lovable.dev/vite-tanstack-config` (plugin que já embute TanStack Start, React, Tailwind, path aliases, etc. — ver comentário em `vite.config.js` antes de mexer nele)
+- **Vite 7** como bundler; `vite.config.js` monta TanStack Start + **Nitro** (`nitro/vite`), React, Tailwind v4 e o alias `@` -> `src/`
 - **@tanstack/react-query** já provisionado (`QueryClientProvider` em `router.jsx`/`__root.jsx`), mas as páginas hoje buscam dados com `useEffect` + funções de `src/services` diretamente, sem `useQuery`/`useMutation` ainda.
-- **@cloudflare/vite-plugin** + `wrangler.jsonc` — build alvo Cloudflare Workers. *Atenção:* confirme onde o deploy realmente acontece antes de mexer em configuração de build/deploy.
+- **Deploy: Vercel** — o build via Nitro detecta a Vercel automaticamente e gera Vercel Functions (SSR). Preset fixado em `vercel.json` (`framework: tanstack-start`). Ver seção **Deploy** abaixo.
 
 ## Como rodar
 
@@ -27,6 +27,30 @@ npm run format   # Prettier
 ```
 
 Antes de subir, crie um `.env` na raiz com a variável `VITE_API_URL` (ver abaixo).
+
+## Deploy
+
+Arquitetura de produção: **front-end na Vercel** + **back-end (API Node/Express) no Render**.
+
+### Front-end (Vercel)
+
+1. Faça push deste repositório para o GitHub.
+2. No painel da Vercel: **Add New → Project** e importe o repositório.
+3. A Vercel detecta **TanStack Start** automaticamente (preset já fixado em `vercel.json`) — não é preciso definir *Build Command* nem *Output Directory*.
+4. Em **Settings → Environment Variables**, adicione:
+   - `VITE_API_URL` = `https://SEU-BACKEND.onrender.com/api` (a URL pública da API no Render, terminando em `/api`)
+5. **Deploy**. A cada `git push` a Vercel refaz o build.
+
+> `VITE_API_URL` é embutida no build. Variáveis definidas na Vercel têm precedência sobre o `.env` do repositório, então o `.env` local (localhost) não interfere na produção. Se mudar a URL da API, é preciso **refazer o deploy**.
+
+### Back-end (Render)
+
+O back-end está em outro repositório ([backcentralagendamento](https://github.com/CaduGomesDev/backcentralagendamento)). No Render, crie um **Web Service** apontando para ele:
+
+- **Build Command:** `npm install`
+- **Start Command:** `npm start`
+- **Health Check Path:** `/api/health`
+- **Variáveis de ambiente:** `NODE_ENV=production`, `MONGODB_URI` (MongoDB Atlas), `JWT_SECRET`, `JWT_REFRESH_SECRET` e `CORS_ORIGIN` = a URL do front na Vercel (ex.: `https://seu-front.vercel.app`).
 
 ## Estrutura de pastas
 
@@ -54,10 +78,10 @@ src/
 ├── lib/
 │   ├── barbershop.js     # Constantes de negócio: TIME_SLOTS, SERVICES, helpers de WhatsApp/telefone/data
 │   ├── utils.js          # cn() (clsx + tailwind-merge)
-│   └── error-capture.js / error-page.js
+│   └── error-page.js     # Página de erro 500 (usada pelo middleware de erro em start.js)
 ├── types/                # Barris de tipos (vazios em runtime; mantidos para organização/documentação)
 ├── router.jsx            # createRouter() + QueryClient
-├── server.js             # Entry SSR customizado (wrapper de erros) — ver comentário em vite.config.js
+├── start.js              # createStart() — middleware de erro do SSR (página 500 amigável)
 ├── routeTree.gen.ts      # Árvore de rotas gerada automaticamente pelo TanStack Router (NÃO editar)
 └── styles.css            # Tema Tailwind v4 (tokens de cor OKLCH, utilitários .input-premium, .gold-text-gradient etc.)
 ```
