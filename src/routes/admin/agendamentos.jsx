@@ -121,7 +121,7 @@ function AgendamentosPage() {
                     <td className="px-4 py-3 text-muted-foreground">{a.barberName}</td>
                     <td className="px-4 py-3">{a.serviceName}</td>
                     <td className="px-4 py-3 text-muted-foreground">{formatDateBR(a.date)}</td>
-                    <td className="px-4 py-3">{a.time}</td>
+                    <td className="px-4 py-3">{a.time || "—"}</td>
                     <td className="px-4 py-3">
                       <select
                         value={a.status}

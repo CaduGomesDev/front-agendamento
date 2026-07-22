@@ -82,7 +82,7 @@ function MyAppointments() {
         ) : (
           <ul className="space-y-3">
             {items.map((a) => {
-              const isPast = new Date(a.date + "T" + a.time) < new Date();
+              const isPast = new Date(a.date + "T" + (a.time || "23:59")) < new Date();
               const canCancel = !isPast && (a.status === "confirmado" || a.status === "pendente");
               return (
                 <li key={a.id} className="rounded-xl border border-border bg-card/40 p-5">
@@ -94,7 +94,7 @@ function MyAppointments() {
                       <p className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                         <span>{formatDateBR(a.date)}</span>
                         <span className="flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" /> {a.time}
+                          <Clock className="h-3.5 w-3.5" /> {a.time || "A combinar"}
                         </span>
                         <span className="flex items-center gap-1">
                           <User className="h-3.5 w-3.5" /> {a.barberName}

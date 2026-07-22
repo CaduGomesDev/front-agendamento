@@ -1,17 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
-import { Scissors } from "lucide-react";
-import { TIME_SLOTS, buildWhatsAppUrl, formatDateBR } from "@/lib/barbershop";
+import { Scissors, Calendar as CalendarIcon } from "lucide-react";
+import { ptBR } from "date-fns/locale";
+import { buildWhatsAppUrl, formatDateBR } from "@/lib/barbershop";
 import { useAuth } from "@/contexts/AuthContext";
 import { getActiveBarbers } from "@/services/barbers";
 import { getActiveServices } from "@/services/services";
 import { getSettings } from "@/services/settings";
-import { createAppointment, getTakenSlots, getBlockedSlots } from "@/services/appointments";
+import { createAppointment } from "@/services/appointments";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
-/** Dia da semana (0=Dom ... 6=Sáb) da data selecionada. */
-function weekdayOf(dateStr) {
-  return new Date(dateStr + "T00:00:00").getDay();
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+
+/** Date -> "YYYY-MM-DD" no fuso local (evita deslocamento de um dia). */
+function toISODate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 export function BookingForm() {
@@ -22,13 +30,9 @@ export function BookingForm() {
   const [barberId, setBarberId] = useState("");
   const [servico, setServico] = useState("");
   const [data, setData] = useState("");
-  const [horario, setHorario] = useState("");
   const [busy, setBusy] = useState(false);
-  const [taken, setTaken] = useState([]);
-  const [blocked, setBlocked] = useState([]);
   const [settings, setSettings] = useState(null);
-
-  const today = new Date().toISOString().slice(0, 10);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
     getActiveBarbers().then((list) => {
@@ -41,22 +45,28 @@ export function BookingForm() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (!data || !barberId) {
-      setTaken([]);
-      setBlocked([]);
-      return;
+  const workingDays = settings?.workingDays ?? null;
+  const bookingDisabled = settings ? settings.allowOnlineBooking === false : false;
+
+  // Início de hoje — usado para bloquear datas passadas no calendário.
+  const startOfToday = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  // Dias desabilitados no calendário: datas passadas + dias da semana
+  // que não estão nos dias de funcionamento configurados.
+  const disabledMatchers = useMemo(() => {
+    const matchers = [{ before: startOfToday }];
+    if (workingDays) {
+      const closedDows = ALL_DAYS.filter((d) => !workingDays.includes(d));
+      if (closedDows.length) matchers.push({ dayOfWeek: closedDows });
     }
-    let active = true;
-    Promise.all([getTakenSlots(data, barberId), getBlockedSlots(data)]).then(([t, b]) => {
-      if (!active) return;
-      setTaken(t);
-      setBlocked(b.map((x) => x.time));
-    });
-    return () => {
-      active = false;
-    };
-  }, [data, barberId]);
+    return matchers;
+  }, [workingDays, startOfToday]);
+
+  const selectedDate = data ? new Date(data + "T00:00:00") : undefined;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -68,8 +78,6 @@ export function BookingForm() {
     if (!servico) return toast.error("Selecione um serviço.");
     if (!data) return toast.error("Selecione a data.");
     if (bookingDisabled) return toast.error("Agendamento online indisponível no momento.");
-    if (closed) return toast.error("A barbearia não funciona neste dia. Escolha outro.");
-    if (!horario) return toast.error("Selecione o horário.");
 
     const svc = services.find((s) => s.id === servico);
     setBusy(true);
@@ -81,7 +89,6 @@ export function BookingForm() {
         barberId,
         serviceId: svc.id,
         date: data,
-        time: horario,
       });
       toast.success("Agendamento confirmado! Abrindo WhatsApp...");
       const url = buildWhatsAppUrl({
@@ -89,10 +96,9 @@ export function BookingForm() {
         telefone: user.phone || "",
         servico: svc.name,
         data: formatDateBR(data),
-        horario,
+        horario: "a combinar",
       });
       setTimeout(() => window.open(url, "_blank"), 500);
-      setHorario("");
       setTimeout(() => navigate({ to: "/app/meus-agendamentos" }), 1200);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível agendar.");
@@ -100,14 +106,6 @@ export function BookingForm() {
       setBusy(false);
     }
   };
-
-  // Enquanto as configurações não carregam, mantém a grade padrão como fallback.
-  const slots = settings?.timeSlots?.length ? settings.timeSlots : TIME_SLOTS;
-  const workingDays = settings?.workingDays ?? null;
-  const bookingDisabled = settings ? settings.allowOnlineBooking === false : false;
-  // Dia fechado: só bloqueia quando há data e as configurações já indicam que o
-  // dia não está entre os dias de funcionamento.
-  const closed = Boolean(data && workingDays && !workingDays.includes(weekdayOf(data)));
 
   return (
     <form
@@ -133,10 +131,7 @@ export function BookingForm() {
           </span>
           <select
             value={barberId}
-            onChange={(e) => {
-              setBarberId(e.target.value);
-              setHorario("");
-            }}
+            onChange={(e) => setBarberId(e.target.value)}
             className="input-premium"
           >
             {barbers.length === 0 && <option value="">Carregando...</option>}
@@ -164,66 +159,48 @@ export function BookingForm() {
             ))}
           </select>
         </label>
-        <label className="block md:col-span-2">
+        <div className="block md:col-span-2">
           <span className="mb-2 block text-xs uppercase tracking-[0.25em] text-muted-foreground">
             Data
           </span>
-          <input
-            type="date"
-            min={today}
-            value={data}
-            onChange={(e) => {
-              setData(e.target.value);
-              setHorario("");
-            }}
-            className="input-premium"
-          />
-        </label>
-      </div>
-
-      <div className="mt-8">
-        <p className="mb-3 text-xs uppercase tracking-[0.25em] text-muted-foreground">Horário</p>
-        {closed ? (
-          <p className="text-sm text-destructive">
-            A barbearia não funciona neste dia. Escolha outro.
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="input-premium flex w-full items-center justify-between text-left"
+              >
+                <span className={data ? "" : "text-muted-foreground"}>
+                  {data ? formatDateBR(data) : "Selecione a data"}
+                </span>
+                <CalendarIcon className="h-4 w-4 text-gold" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                locale={ptBR}
+                selected={selectedDate}
+                onSelect={(d) => {
+                  if (d) {
+                    setData(toISODate(d));
+                    setCalendarOpen(false);
+                  }
+                }}
+                disabled={disabledMatchers}
+                startMonth={startOfToday}
+                defaultMonth={selectedDate ?? startOfToday}
+              />
+            </PopoverContent>
+          </Popover>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Dias sem atendimento aparecem bloqueados no calendário.
           </p>
-        ) : (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-            {slots.map((t) => {
-              const isTaken = taken.includes(t) || blocked.includes(t);
-              const disabled = isTaken || !data || bookingDisabled;
-              const active = horario === t;
-              return (
-                <button
-                  type="button"
-                  key={t}
-                  disabled={disabled}
-                  onClick={() => setHorario(t)}
-                  className={[
-                    "rounded-md border px-2 py-2 text-sm transition",
-                    active
-                      ? "border-gold bg-gold text-primary-foreground"
-                      : disabled
-                        ? "cursor-not-allowed border-border/40 bg-muted/30 text-muted-foreground line-through opacity-50"
-                        : "border-border bg-background/40 hover:border-gold hover:text-gold",
-                  ].join(" ")}
-                >
-                  {t}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {!data && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            Selecione uma data para ver os horários disponíveis.
-          </p>
-        )}
+        </div>
       </div>
 
       <button
         type="submit"
-        disabled={busy || closed || bookingDisabled}
+        disabled={busy || bookingDisabled}
         className="group mt-8 flex w-full items-center justify-center gap-2 rounded-md bg-gradient-gold px-6 py-4 text-sm font-semibold uppercase tracking-[0.25em] text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
       >
         <Scissors className="h-4 w-4 transition group-hover:rotate-12" />
