@@ -61,12 +61,24 @@ export const TIME_SLOTS = [
   "19:00",
 ];
 
-const TIME_FORMAT_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
-
-/** Horários configurados em Configurações, ignorando entradas que não sejam "HH:MM" (ex.: dias da semana digitados por engano). */
+/** Gera os horários disponíveis a partir de abertura/fechamento/intervalo configurados em Operação. */
 export function getTimeSlots(settings) {
-  const configured = (settings?.timeSlots ?? []).filter((t) => TIME_FORMAT_RE.test(t));
-  return configured.length ? configured : TIME_SLOTS;
+  const { openingTime, closingTime, bookingIntervalMinutes: interval } = settings ?? {};
+  if (!openingTime || !closingTime || !interval) return TIME_SLOTS;
+
+  const [openH, openM] = openingTime.split(":").map(Number);
+  const [closeH, closeM] = closingTime.split(":").map(Number);
+  const start = openH * 60 + openM;
+  const end = closeH * 60 + closeM;
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return TIME_SLOTS;
+
+  const slots = [];
+  for (let t = start; t <= end; t += interval) {
+    const h = String(Math.floor(t / 60)).padStart(2, "0");
+    const m = String(t % 60).padStart(2, "0");
+    slots.push(`${h}:${m}`);
+  }
+  return slots;
 }
 
 export function isSundayClosed(dateStr) {

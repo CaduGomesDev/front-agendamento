@@ -15,7 +15,7 @@ import { getClients } from "@/services/clients";
 import { getActiveBarbers } from "@/services/barbers";
 import { getActiveServices } from "@/services/services";
 import { getSettings } from "@/services/settings";
-import { TIME_SLOTS, formatDateBR } from "@/lib/barbershop";
+import { getTimeSlots, formatDateBR } from "@/lib/barbershop";
 import { DatePicker } from "@/components/DatePicker";
 import { APPOINTMENT_STATUSES } from "@/types";
 
@@ -43,6 +43,7 @@ function AgendamentosPage() {
   const [savingAppt, setSavingAppt] = useState(false);
 
   const workingDays = settings?.workingDays ?? null;
+  const slots = getTimeSlots(settings);
 
   const load = async () => {
     setLoading(true);
@@ -252,7 +253,7 @@ function AgendamentosPage() {
                   className="input-premium"
                 >
                   <option value="">A combinar</option>
-                  {TIME_SLOTS.map((t) => (
+                  {slots.map((t) => (
                     <option key={t} value={t}>
                       {t}
                     </option>
@@ -367,7 +368,7 @@ function AgendamentosPage() {
               className="input-premium w-full sm:max-w-[140px]"
             >
               <option value="">Horário...</option>
-              {TIME_SLOTS.map((t) => (
+              {slots.map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>

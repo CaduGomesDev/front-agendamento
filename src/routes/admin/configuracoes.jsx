@@ -21,15 +21,11 @@ const DAYS = [
 function ConfiguracoesPage() {
   const [settings, setSettings] = useState(null);
   const [company, setCompany] = useState(null);
-  const [slotsText, setSlotsText] = useState("");
   const [savingS, setSavingS] = useState(false);
   const [savingC, setSavingC] = useState(false);
 
   useEffect(() => {
-    getSettings().then((s) => {
-      setSettings(s);
-      setSlotsText((s.timeSlots ?? []).join(", "));
-    });
+    getSettings().then(setSettings);
     getCompany().then(setCompany);
   }, []);
 
@@ -46,16 +42,9 @@ function ConfiguracoesPage() {
 
   const saveSettings = async () => {
     if (!settings) return;
-    // Aceita vírgula, ponto, ponto e vírgula ou quebra de linha como separador,
-    // evitando que itens como "Qua. Qui" fiquem grudados em um único horário.
-    const timeSlots = slotsText
-      .split(/[,.;\n]+/)
-      .map((t) => t.trim())
-      .filter(Boolean);
     setSavingS(true);
-    const updated = await updateSettings({ ...settings, timeSlots });
+    const updated = await updateSettings(settings);
     setSettings(updated);
-    setSlotsText((updated.timeSlots ?? []).join(", "));
     setSavingS(false);
     toast.success("Configurações salvas.");
   };
@@ -80,17 +69,30 @@ function ConfiguracoesPage() {
           <p className="text-sm text-muted-foreground">Carregando...</p>
         ) : (
           <div className="space-y-5">
-            <label className="block">
-              <span className="mb-2 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                Horários (separados por vírgula)
-              </span>
-              <textarea
-                value={slotsText}
-                onChange={(e) => setSlotsText(e.target.value)}
-                rows={3}
-                className="input-premium w-full"
-              />
-            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <label className="block">
+                <span className="mb-2 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Abre às
+                </span>
+                <input
+                  type="time"
+                  value={settings.openingTime}
+                  onChange={(e) => setSettings({ ...settings, openingTime: e.target.value })}
+                  className="input-premium w-full"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Fecha às
+                </span>
+                <input
+                  type="time"
+                  value={settings.closingTime}
+                  onChange={(e) => setSettings({ ...settings, closingTime: e.target.value })}
+                  className="input-premium w-full"
+                />
+              </label>
+            </div>
             <div>
               <span className="mb-2 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 Dias de funcionamento
