@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { Scissors } from "lucide-react";
-import { buildWhatsAppUrl, formatDateBR } from "@/lib/barbershop";
+import { TIME_SLOTS, buildWhatsAppUrl, formatDateBR } from "@/lib/barbershop";
 import { useAuth } from "@/contexts/AuthContext";
 import { getActiveBarbers } from "@/services/barbers";
 import { getActiveServices } from "@/services/services";
 import { getSettings, getCompany } from "@/services/settings";
-import { createAppointment } from "@/services/appointments";
+import { createAppointment, getTakenSlots, getBlockedSlots } from "@/services/appointments";
 import { DatePicker } from "@/components/DatePicker";
 
 export function BookingForm() {
@@ -18,9 +18,12 @@ export function BookingForm() {
   const [barberId, setBarberId] = useState("");
   const [servico, setServico] = useState("");
   const [data, setData] = useState("");
+  const [horario, setHorario] = useState("");
   const [busy, setBusy] = useState(false);
   const [settings, setSettings] = useState(null);
   const [company, setCompany] = useState(null);
+  const [taken, setTaken] = useState([]);
+  const [blocked, setBlocked] = useState([]);
 
   useEffect(() => {
     getActiveBarbers().then((list) => {
@@ -38,8 +41,27 @@ export function BookingForm() {
       });
   }, []);
 
+  useEffect(() => {
+    setHorario("");
+    if (!data || !barberId) {
+      setTaken([]);
+      setBlocked([]);
+      return;
+    }
+    let active = true;
+    Promise.all([getTakenSlots(data, barberId), getBlockedSlots(data)]).then(([t, b]) => {
+      if (!active) return;
+      setTaken(t);
+      setBlocked(b.map((x) => x.time));
+    });
+    return () => {
+      active = false;
+    };
+  }, [data, barberId]);
+
   const workingDays = settings?.workingDays ?? null;
   const bookingDisabled = settings ? settings.allowOnlineBooking === false : false;
+  const slots = settings?.timeSlots?.length ? settings.timeSlots : TIME_SLOTS;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -50,6 +72,7 @@ export function BookingForm() {
     if (!barberId) return toast.error("Selecione um barbeiro.");
     if (!servico) return toast.error("Selecione um serviço.");
     if (!data) return toast.error("Selecione a data.");
+    if (!horario) return toast.error("Selecione o horário.");
     if (bookingDisabled) return toast.error("Agendamento online indisponível no momento.");
 
     const svc = services.find((s) => s.id === servico);
@@ -62,6 +85,7 @@ export function BookingForm() {
         barberId,
         serviceId: svc.id,
         date: data,
+        time: horario,
       });
       toast.success("Agendamento confirmado! Abrindo WhatsApp...");
       const url = buildWhatsAppUrl({
@@ -69,11 +93,12 @@ export function BookingForm() {
         telefone: user.phone || "",
         servico: svc.name,
         data: formatDateBR(data),
-        horario: "a combinar",
+        horario,
         whatsapp: company?.whatsapp,
         companyName: company?.name,
       });
       setTimeout(() => window.open(url, "_blank"), 500);
+      setHorario("");
       setTimeout(() => navigate({ to: "/app/meus-agendamentos" }), 1200);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível agendar.");
@@ -143,6 +168,41 @@ export function BookingForm() {
             Dias sem atendimento aparecem bloqueados no calendário.
           </p>
         </div>
+      </div>
+
+      <div className="mt-8">
+        <p className="mb-3 text-xs uppercase tracking-[0.25em] text-muted-foreground">Horário</p>
+        {data ? (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {slots.map((t) => {
+              const isTaken = taken.includes(t) || blocked.includes(t);
+              const disabled = isTaken || bookingDisabled;
+              const active = horario === t;
+              return (
+                <button
+                  type="button"
+                  key={t}
+                  disabled={disabled}
+                  onClick={() => setHorario(t)}
+                  className={[
+                    "rounded-md border px-2 py-2 text-sm transition",
+                    active
+                      ? "border-gold bg-gold text-primary-foreground"
+                      : disabled
+                        ? "cursor-not-allowed border-border/40 bg-muted/30 text-muted-foreground line-through opacity-50"
+                        : "border-border bg-background/40 hover:border-gold hover:text-gold",
+                  ].join(" ")}
+                >
+                  {t}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Selecione uma data para ver os horários disponíveis.
+          </p>
+        )}
       </div>
 
       <button
