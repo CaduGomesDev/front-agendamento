@@ -17,31 +17,6 @@ Este repositório (frontend) usa React 19 com TanStack Start e TanStack Router (
 
 O backend (outro repositório) é uma API em Node/Express com MongoDB via Mongoose, autenticação por JWT (access + refresh token) e Zod para validar as entradas.
 
-## Rodando o projeto
-
-Precisa de Node 22.x. Como o front depende da API, suba o backend primeiro — instruções completas estão no README do repositório do backend. Resumindo:
-
-```bash
-git clone https://github.com/CaduGomesDev/backcentralagendamento.git
-cd backcentralagendamento
-npm install
-cp .env.example .env      # configurar MONGODB_URI e os segredos do JWT
-npm run seed              # opcional na primeira vez, cria a conta admin
-npm run dev                # API em http://localhost:3333
-```
-
-Com o backend no ar, rode o frontend:
-
-```bash
-git clone https://github.com/CaduGomesDev/frontcentralagendamento.git
-cd frontcentralagendamento
-npm install
-cp .env.example .env      # VITE_API_URL apontando para http://localhost:3333/api
-npm run dev
-```
-
-O terminal do Vite mostra a URL local (geralmente `http://localhost:3000`). Outros comandos: `npm run build` (build de produção), `npm run preview` e `npm run lint`.
-
 ## Variáveis de ambiente
 
 - `VITE_API_URL` — obrigatória, URL da API do backend.
@@ -58,14 +33,6 @@ Nunca commitar o `.env` — o `.env.example` serve de modelo.
 **Painel administrativo** (perfil admin) — dashboard com estatísticas e agendamentos do dia, CRUD de barbeiros e serviços, gestão de clientes, gestão de agendamentos com filtros, troca de status, bloqueio de horários e exclusão definitiva, cadastro manual de cliente direto na agenda (para atendimentos combinados por fora), relatórios de faturamento por barbeiro/serviço e configurações gerais da empresa (dias de funcionamento, intervalo entre agendamentos).
 
 Uma coisa que ficou incompleta de propósito, vale registrar: a recuperação de senha funciona, mas como o projeto não tem servidor de e-mail, o token de redefinição é gerado pelo próprio sistema e leva direto para a tela de nova senha — em produção esse token seria enviado por e-mail.
-
-## Credenciais de teste
-
-Depois de rodar `npm run seed` no backend:
-
-- Admin: `admin@barbearia.com.br` / `espezim123`
-
-Contas de cliente são criadas normalmente pela tela de cadastro.
 
 ## Deploy
 
