@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { Scissors } from "lucide-react";
-import { TIME_SLOTS, buildWhatsAppUrl, formatDateBR } from "@/lib/barbershop";
+import { getTimeSlots, buildWhatsAppUrl, formatDateBR } from "@/lib/barbershop";
 import { useAuth } from "@/contexts/AuthContext";
 import { getActiveBarbers } from "@/services/barbers";
 import { getActiveServices } from "@/services/services";
@@ -61,7 +61,7 @@ export function BookingForm() {
 
   const workingDays = settings?.workingDays ?? null;
   const bookingDisabled = settings ? settings.allowOnlineBooking === false : false;
-  const slots = settings?.timeSlots?.length ? settings.timeSlots : TIME_SLOTS;
+  const slots = getTimeSlots(settings);
 
   const submit = async (e) => {
     e.preventDefault();

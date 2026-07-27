@@ -61,6 +61,14 @@ export const TIME_SLOTS = [
   "19:00",
 ];
 
+const TIME_FORMAT_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
+
+/** Horários configurados em Configurações, ignorando entradas que não sejam "HH:MM" (ex.: dias da semana digitados por engano). */
+export function getTimeSlots(settings) {
+  const configured = (settings?.timeSlots ?? []).filter((t) => TIME_FORMAT_RE.test(t));
+  return configured.length ? configured : TIME_SLOTS;
+}
+
 export function isSundayClosed(dateStr) {
   if (!dateStr) return false;
   return new Date(dateStr + "T00:00:00").getDay() === 0;
