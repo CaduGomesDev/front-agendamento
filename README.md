@@ -17,6 +17,31 @@ Este repositório (frontend) usa React 19 com TanStack Start e TanStack Router (
 
 O backend (outro repositório) é uma API em Node/Express com MongoDB via Mongoose, autenticação por JWT (access + refresh token) e Zod para validar as entradas.
 
+## Rodando o projeto
+
+Precisa de Node 22.x. Como o front depende da API, suba o backend primeiro — instruções completas estão no README do repositório do backend. Resumindo:
+
+```bash
+git clone https://github.com/CaduGomesDev/backcentralagendamento.git
+cd backcentralagendamento
+npm install
+cp .env.example .env      # configurar MONGODB_URI e os segredos do JWT
+npm run seed              # opcional na primeira vez, cria a conta admin
+npm run dev                # API em http://localhost:3333
+```
+
+Com o backend no ar, rode o frontend:
+
+```bash
+git clone https://github.com/CaduGomesDev/frontcentralagendamento.git
+cd frontcentralagendamento
+npm install
+cp .env.example .env      # VITE_API_URL apontando para http://localhost:3333/api
+npm run dev
+```
+
+O terminal do Vite mostra a URL local (geralmente `http://localhost:3000`). Outros comandos: `npm run build` (build de produção), `npm run preview` e `npm run lint`.
+
 ## Variáveis de ambiente
 
 - `VITE_API_URL` — obrigatória, URL da API do backend.
@@ -36,4 +61,6 @@ Uma coisa que ficou incompleta de propósito, vale registrar: a recuperação de
 
 ## Deploy
 
-Frontend na Vercel, backend no Render. O `vercel.json` já configura o build do TanStack Start — basta importar o repositório e definir `VITE_API_URL` apontando para a URL do backend no Render.
+Frontend na Vercel: **https://<preencher-url-da-vercel>.vercel.app** (backend no Render: veja o README do [repositório do backend](https://github.com/CaduGomesDev/backcentralagendamento)).
+
+O `vercel.json` já configura o build do TanStack Start — basta importar o repositório e definir `VITE_API_URL` apontando para a URL do backend no Render.
