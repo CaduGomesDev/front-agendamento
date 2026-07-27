@@ -6,7 +6,7 @@ import { buildWhatsAppUrl, formatDateBR } from "@/lib/barbershop";
 import { useAuth } from "@/contexts/AuthContext";
 import { getActiveBarbers } from "@/services/barbers";
 import { getActiveServices } from "@/services/services";
-import { getSettings } from "@/services/settings";
+import { getSettings, getCompany } from "@/services/settings";
 import { createAppointment } from "@/services/appointments";
 import { DatePicker } from "@/components/DatePicker";
 
@@ -20,6 +20,7 @@ export function BookingForm() {
   const [data, setData] = useState("");
   const [busy, setBusy] = useState(false);
   const [settings, setSettings] = useState(null);
+  const [company, setCompany] = useState(null);
 
   useEffect(() => {
     getActiveBarbers().then((list) => {
@@ -30,6 +31,11 @@ export function BookingForm() {
     getSettings()
       .then(setSettings)
       .catch(() => {});
+    getCompany()
+      .then(setCompany)
+      .catch(() => {
+        /* segue com o fallback padrão em buildWhatsAppUrl se a API falhar */
+      });
   }, []);
 
   const workingDays = settings?.workingDays ?? null;
@@ -64,6 +70,8 @@ export function BookingForm() {
         servico: svc.name,
         data: formatDateBR(data),
         horario: "a combinar",
+        whatsapp: company?.whatsapp,
+        companyName: company?.name,
       });
       setTimeout(() => window.open(url, "_blank"), 500);
       setTimeout(() => navigate({ to: "/app/meus-agendamentos" }), 1200);

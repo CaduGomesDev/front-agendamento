@@ -1,4 +1,5 @@
-export const WHATSAPP_NUMBER = "5548999999999"; // configure aqui
+// Valores usados apenas como fallback caso os dados da empresa não carreguem da API.
+export const WHATSAPP_NUMBER = "5548999999999";
 export const PROFESSIONAL_NAME = "Carlos Gomes";
 
 export const SERVICES = [
@@ -66,14 +67,16 @@ export function isSundayClosed(dateStr) {
 }
 
 export function buildWhatsAppUrl(payload) {
+  const whatsapp = (payload.whatsapp || WHATSAPP_NUMBER).replace(/\D/g, "");
+  const companyName = payload.companyName || "Barbearia Espezim";
   const text =
-    `Olá, gostaria de confirmar meu agendamento na Barbearia Espezim.%0A%0A` +
+    `Olá, gostaria de confirmar meu agendamento na ${companyName}.%0A%0A` +
     `Nome: ${payload.nome}%0A` +
     `Telefone: ${payload.telefone}%0A` +
     `Serviço: ${payload.servico}%0A` +
     `Data: ${payload.data}%0A` +
     `Horário: ${payload.horario}`;
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
+  return `https://wa.me/${whatsapp}?text=${text}`;
 }
 
 export function maskPhone(value) {
