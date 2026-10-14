@@ -21,6 +21,15 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Barbearia Espezim" },
       { property: "og:description", content: "Por Carlos Gomes. Agendamento online." },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: heroImg },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Barbearia Espezim — Por Carlos Gomes" },
+      {
+        name: "twitter:description",
+        content:
+          "Atendimento personalizado, conforto e estilo em cada detalhe. Agende seu horário online.",
+      },
+      { name: "twitter:image", content: heroImg },
     ],
   }),
 });
@@ -110,6 +119,7 @@ function Index() {
           className="absolute inset-0 h-full w-full object-cover"
           width={1920}
           height={1280}
+          fetchPriority="high"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/65 to-background" />
         <div className="relative z-10 mx-auto max-w-3xl px-6 text-center fade-up">
@@ -155,33 +165,48 @@ function Index() {
             <h2 className="mt-4 font-serif text-4xl md:text-5xl">Tabela de preços</h2>
             <div className="divider-gold mx-auto my-6 w-20" />
           </div>
-          {servicesLoading && (
-            <p className="mt-14 text-center text-sm text-muted-foreground">Carregando...</p>
-          )}
-          {!servicesLoading && services.length === 0 && (
+          {servicesLoading ? (
+            <div className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="animate-pulse rounded-xl border border-border bg-card/40 p-7"
+                >
+                  <div className="flex items-baseline justify-between">
+                    <div className="h-7 w-28 rounded bg-muted/50" />
+                    <div className="h-6 w-14 rounded bg-muted/50" />
+                  </div>
+                  <div className="mt-4 h-3.5 w-full rounded bg-muted/30" />
+                  <div className="mt-2 h-3.5 w-2/3 rounded bg-muted/30" />
+                  <div className="mt-6 h-3 w-16 rounded bg-muted/30" />
+                </div>
+              ))}
+            </div>
+          ) : services.length === 0 ? (
             <p className="mt-14 text-center text-sm text-muted-foreground">
               Nenhum serviço cadastrado no momento.
             </p>
-          )}
-          <div className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {services.map((s) => (
-              <div
-                key={s.id}
-                className="group rounded-xl border border-border bg-card/40 p-7 transition hover:border-gold/60"
-              >
-                <div className="flex items-baseline justify-between">
-                  <h3 className="font-serif text-2xl">{s.name}</h3>
-                  <span className="gold-text-gradient font-serif text-xl">R$ {s.price}</span>
+          ) : (
+            <div className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {services.map((s) => (
+                <div
+                  key={s.id}
+                  className="group rounded-xl border border-border bg-card/40 p-7 transition hover:border-gold/60"
+                >
+                  <div className="flex items-baseline justify-between">
+                    <h3 className="font-serif text-2xl">{s.name}</h3>
+                    <span className="gold-text-gradient font-serif text-xl">R$ {s.price}</span>
+                  </div>
+                  {s.description && (
+                    <p className="mt-3 text-sm text-muted-foreground">{s.description}</p>
+                  )}
+                  <p className="mt-5 text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+                    {s.durationMinutes} min
+                  </p>
                 </div>
-                {s.description && (
-                  <p className="mt-3 text-sm text-muted-foreground">{s.description}</p>
-                )}
-                <p className="mt-5 text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-                  {s.durationMinutes} min
-                </p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

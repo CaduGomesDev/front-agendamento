@@ -10,6 +10,12 @@ html {
   scroll-padding-top: 5rem;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 @theme inline {
   --font-serif: "Playfair Display", "Cormorant Garamond", Georgia, serif;
   --font-sans: "Inter", "Helvetica Neue", system-ui, sans-serif;
@@ -158,5 +164,11 @@ html {
   @keyframes floatSlow {
     0%,100% { transform: translateY(0); }
     50% { transform: translateY(-8px); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fade-up, .float-slow {
+      animation: none;
+    }
   }
 }

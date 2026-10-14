@@ -11,6 +11,7 @@ import {
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
+import logo from "@/assets/logo.png";
 
 function NotFoundComponent() {
   return (
@@ -74,16 +75,20 @@ export const Route = createRootRouteWithContext()({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Central Barbearia — Agendamento Online" },
+      {
+        name: "description",
+        content: "Agende seu horário de barbearia online, de forma rápida e sem conflito.",
+      },
+      { property: "og:title", content: "Central Barbearia" },
+      {
+        property: "og:description",
+        content: "Agende seu horário de barbearia online, de forma rápida e sem conflito.",
+      },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
+      { rel: "icon", type: "image/png", href: logo },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -101,7 +106,7 @@ export const Route = createRootRouteWithContext()({
 
 function RootShell({ children }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <HeadContent />
       </head>

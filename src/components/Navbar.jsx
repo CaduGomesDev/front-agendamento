@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, X, LogOut, UserRound } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getCompany } from "@/services/settings";
 import logo from "@/assets/logo.png";
 
 const SECTIONS = [
@@ -11,10 +12,23 @@ const SECTIONS = [
   { href: "#contato", label: "Contato" },
 ];
 
+const DEFAULT_NAME = "Central Barbearia";
+
 export function Navbar() {
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
+  const [companyName, setCompanyName] = useState(DEFAULT_NAME);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    getCompany()
+      .then((c) => {
+        if (c?.name?.trim()) setCompanyName(c.name.trim());
+      })
+      .catch(() => {
+        /* mantém o nome padrão se a API falhar */
+      });
+  }, []);
 
   const linkCls = "hover:text-gold transition";
 
@@ -28,7 +42,7 @@ export function Navbar() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <a href="#top" className="flex items-center gap-2">
           <img src={logo} alt="" className="h-7 w-7" width={28} height={28} />
-          <span className="font-serif text-lg tracking-wide">Central Barbearia</span>
+          <span className="font-serif text-lg tracking-wide">{companyName}</span>
         </a>
 
         {/* Nomes das seções — rolam suavemente até a seção */}
